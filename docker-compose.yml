@@ -1,0 +1,27 @@
+---
+version: '3.7'
+services:
+  database:
+    container_name: database
+    environment:
+      MYSQL_DATABASE: exampledb
+      MYSQL_USER: exampleuser
+      MYSQL_PASSWORD: examplepass
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    image: mysql:5.7
+
+  wordpress:
+    container_name: wordpress
+    depends_on:
+      - database
+    environment:
+      WORDPRESS_DB_HOST: database
+      WORDPRESS_DB_USER: exampleuser
+      WORDPRESS_DB_PASSWORD: examplepass
+      WORDPRESS_DB_NAME: exampledb
+    image: wordpress:apache
+    ports:
+      - 80:80
+    restart: always
+    volumes:
+      - ${PATH_TO_PLUGIN_DIRECTORY}:/var/www/html/wp-content/plugins
