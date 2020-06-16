@@ -1,0 +1,15 @@
+entity: WpOption
+items:
+  wpoption1:
+    optionName: 'StaticPress::static url'
+    optionValue: 'http://example.org/sub/'
+    autoload: 'yes'
+  wpoption2:
+    optionName: 'StaticPress::static dir'
+    optionValue: '/var/www/web/static/'
+    autoload: 'yes'
+  wpoption3:
+    optionName: 'StaticPress::timeout'
+    optionValue: '20'
+    autoload: 'yes'
+    

@@ -1,0 +1,10 @@
+---
+version: '3.7'
+services:
+  database:
+    ports:
+      - 3306:3306
+
+  wordpress:
+    ports:
+      - 80:80

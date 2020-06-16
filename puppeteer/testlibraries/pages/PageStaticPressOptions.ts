@@ -11,7 +11,6 @@ export default class PageStaticPressOptions {
     await this.clearAndType('input[id="basic_pwd"]', basicAuthenticationPassword);
     await this.clearAndType('input[id="timeout"]', requestTimeout);
 
-    await jestPuppeteer.debug();
     await Promise.all([
       page.waitForNavigation({ waitUntil: "domcontentloaded" }),
       page.click('input[value="Save Changes"]')

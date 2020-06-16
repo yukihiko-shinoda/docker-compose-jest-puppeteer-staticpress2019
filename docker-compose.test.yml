@@ -23,9 +23,24 @@ services:
       WORDPRESS_DB_NAME: exampledb
       BASIC_AUTHENTICATION_USER_NAME: authuser
       BASIC_AUTHENTICATION_USER_PASSWORD: authpassword
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_SITEURL', 'http://wordpress');
+        define('WP_HOME', 'http://wordpress');
     image: wordpress-basic-authentication:latest
     ports:
       - 80:80
     restart: always
     volumes:
       - ${PATH_TO_PLUGIN_DIRECTORY}:/var/www/html/wp-content/plugins
+
+  puppeteer:
+    build:
+      context: puppeteer
+    command: bash -c "sleep 10 && npm test"
+    container_name: puppeteer
+    depends_on:
+      - wordpress
+    environment:
+      HOST: http://wordpress/
+      DATABASE_HOST: database
+    image: futureys/puppeteer-staticpress2019:latest

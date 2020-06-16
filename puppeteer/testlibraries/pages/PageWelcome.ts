@@ -13,7 +13,7 @@ export default class PageWelcome {
     await page.screenshot({ path: 'screenshot.png' });
 
     await Promise.all([
-      page.waitForNavigation({ waitUntil: "domcontentloaded" }),
+      page.waitForNavigation({ waitUntil: ["load", "networkidle2"] }),
       page.click('input[value="Install WordPress"]')
     ]);
   }
