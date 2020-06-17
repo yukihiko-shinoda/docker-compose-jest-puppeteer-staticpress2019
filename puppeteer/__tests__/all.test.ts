@@ -10,6 +10,7 @@ import { WpOption } from "../testlibraries/entities/WpOption";
 import FixtureLoader from "../testlibraries/FixtureLoader";
 import TableCleaner from "../testlibraries/TableCleaner";
 import PageStaticPress from "../testlibraries/pages/PageStaticPress";
+import PageLanguageChooser from "../testlibraries/pages/PageLanguageChooser";
 
 describe('All', () => {
   require('dotenv').config()
@@ -25,28 +26,41 @@ describe('All', () => {
       Authorization: `Basic ${new Buffer(`${basicAuthenticationUserName}:${basicAuthenticationUserPassword}`).toString('base64')}`
     });
     await page.goto(host);
+    // jest.setTimeout(24 * 60 * 60 * 1000);
+    // await jestPuppeteer.debug();
     await page.screenshot({ path: 'screenshot1.png' });
 
-    if (await page.$x('//h2[text()="Information needed"]').then((elementHandle: ElementHandle<Element>[]) => elementHandle.length === 0)) {
-      await page.goto(host + 'wp-admin/', { waitUntil: ["load", "networkidle2"] });
-      const pageLogin = new PageLogin();
-      await pageLogin.login(userName, userPassword);
+    // From WordPress 5.4.2, language select page is displayed at first.
+    if (await PageLanguageChooser.isDisplayedNow()) {
+      const pageLanguageChooser = new PageLanguageChooser();
+      await pageLanguageChooser.choose("English (United States)");
+    }
+    if (await PageWelcome.isDisplayedNow()) {
+      await initialize();
       return;
     }
+    await login();
+});
+
+  async function initialize() {
     const pageWelcome = new PageWelcome();
     await pageWelcome.install("test_title", userName, userPassword, "test@gmail.com");
 
     await RoutineOperation.clickByText(page, 'a', 'Log In');
     await page.waitForNavigation({ waitUntil: ["load", "networkidle2"] });
 
-    await page.goto(host + 'wp-admin/', { waitUntil: ["load", "networkidle2"] });
-    const pageLogin = new PageLogin();
-    await pageLogin.login(userName, userPassword);
+    await login();
     const pageAdmin = new PageAdmin();
     await pageAdmin.clickMenu('Plugins');
     const pagePlugins = new PagePlugins();
     await pagePlugins.activatePlugin('StaticPress2019');
-});
+  }
+
+  async function login() {
+    await page.goto(host + 'wp-admin/', { waitUntil: ["load", "networkidle2"] });
+    const pageLogin = new PageLogin();
+    await pageLogin.login(userName, userPassword);
+  }
 
   beforeEach(async () => {
     console.log("Inserting fixtures into the database...");

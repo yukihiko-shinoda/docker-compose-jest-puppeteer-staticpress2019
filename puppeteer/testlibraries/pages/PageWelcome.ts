@@ -1,3 +1,5 @@
+import { ElementHandle } from "puppeteer";
+
 export default class PageWelcome {
   public async install(siteTitle: string, userName: string, password: string, email: string) {
     await page.type('input[id="weblog_title"]', siteTitle, { delay: 50 });
@@ -16,5 +18,8 @@ export default class PageWelcome {
       page.waitForNavigation({ waitUntil: ["load", "networkidle2"] }),
       page.click('input[value="Install WordPress"]')
     ]);
+  }
+  static async isDisplayedNow() {
+    return await page.$x('//h2[text()="Information needed"]').then((elementHandle: ElementHandle<Element>[]) => elementHandle.length !== 0)
   }
 }
