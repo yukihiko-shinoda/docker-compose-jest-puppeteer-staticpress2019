@@ -22,27 +22,39 @@ describe('All', () => {
   beforeAll(async () => {
     // To prevent shutdown browser.
     jest.setTimeout(5 * 60 * 1000);
+    console.log("Start basic authentication");
     await page.setExtraHTTPHeaders({
       Authorization: `Basic ${new Buffer(`${basicAuthenticationUserName}:${basicAuthenticationUserPassword}`).toString('base64')}`
     });
-    await page.goto(host);
+    await page.goto(host).catch(err => {
+      console.log(err)
+      throw err
+    });
+    console.log("Finish basic authentication");
     // jest.setTimeout(24 * 60 * 60 * 1000);
     // await jestPuppeteer.debug();
     await page.screenshot({ path: 'screenshot1.png' });
 
     // From WordPress 5.4.2, language select page is displayed at first.
     if (await PageLanguageChooser.isDisplayedNow()) {
+      console.log("Start choose language");
       const pageLanguageChooser = new PageLanguageChooser();
       await pageLanguageChooser.choose("English (United States)");
+      console.log("Finish choose language");
     }
     if (await PageWelcome.isDisplayedNow()) {
+      console.log("Start Initialize");
       await initialize();
+      console.log("Finish Initialize");
       return;
     }
+    console.log("Start login");
     await login();
+    console.log("Finish login");
 });
 
   async function initialize() {
+    console.log("Start Initialize");
     const pageWelcome = new PageWelcome();
     await pageWelcome.install("test_title", userName, userPassword, "test@gmail.com");
 
