@@ -5,9 +5,16 @@ export default class PageWelcome {
     await page.type('input[id="weblog_title"]', siteTitle, { delay: 50 });
     await page.type('input[id="user_login"]', userName, { delay: 50 });
 
-    const inputPassword = await page.$('#pass1');
+    let inputPassword = await page.$('#pass1');
     if (inputPassword === null) {
       throw new Error('Input password not found.');
+    }
+    // #pass1 is password input on modern WordPress, however, #pass1-text is the one at least on WordPress 4.3.
+    if (!await inputPassword.isIntersectingViewport()) {
+      inputPassword = await page.$('#pass1-text');
+      if (inputPassword === null) {
+        throw new Error('Input password not found.');
+      }
     }
     await inputPassword.click({ clickCount: 3 })
     await inputPassword.type(password);
@@ -20,6 +27,7 @@ export default class PageWelcome {
     ]);
   }
   static async isDisplayedNow() {
-    return await page.$x('//h2[text()="Information needed"]').then((elementHandle: ElementHandle<Element>[]) => elementHandle.length !== 0)
+    // <h2> is used on modern WordPress, however, <h1> is used at least on WordPress 4.3.
+    return await page.$x('//*[self::h1 or self ::h2][text()="Information needed"]').then((elementHandle: ElementHandle<Element>[]) => elementHandle.length !== 0)
   }
 }
