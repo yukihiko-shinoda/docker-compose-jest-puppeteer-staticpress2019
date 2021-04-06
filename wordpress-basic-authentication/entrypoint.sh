@@ -10,7 +10,7 @@ htpasswd -b -c /etc/apache2/.htpasswd "${BASIC_AUTHENTICATION_USER_NAME}" "${BAS
 match='\s*#Include\sconf-available\/serve-cgi-bin\.conf'
 raw='        #Include conf-available\/serve-cgi-bin.conf'
 insert="        <Directory \"\/var\/www\/html\">\n            AuthType Basic\n            AuthName \"Restricted Content\"\n            AuthUserFile \/etc\/apache2\/.htpasswd\n            Require valid-user\n        <\/Directory>"
-file='/etc/apache2/sites-enabled/000-default.conf'
+file='/etc/apache2/sites-available/000-default.conf'
 
 sed -i "s/$match/$raw\n$insert/" "$file"
 
