@@ -1,12 +1,6 @@
 ARG WORDPRESS_IMAGE_TAG
-ARG MODERNITY
-
-FROM wordpress:${WORDPRESS_IMAGE_TAG} AS modern
-
-FROM wordpress:${WORDPRESS_IMAGE_TAG} AS legacy
-RUN mv /entrypoint.sh /usr/bin/docker-entrypoint.sh
-
-FROM ${MODERNITY}
+FROM wordpress:${WORDPRESS_IMAGE_TAG}
+RUN if [ -e /entrypoint.sh ] ; then mv /entrypoint.sh /usr/bin/docker-entrypoint.sh ; fi
 COPY ./entrypoint.sh /usr/bin/entrypoint
 RUN chmod +x /usr/bin/entrypoint
 ENTRYPOINT ["entrypoint"]
