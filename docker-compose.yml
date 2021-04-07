@@ -13,7 +13,6 @@ services:
     build:
       args:
         WORDPRESS_IMAGE_TAG: ${WORDPRESS_IMAGE_TAG:-latest}
-        MODERNITY: ${MODERNITY:-modern}
       context: wordpress-basic-authentication
     depends_on:
       - database
