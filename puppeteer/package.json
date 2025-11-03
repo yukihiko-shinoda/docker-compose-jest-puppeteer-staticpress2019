@@ -14,10 +14,10 @@
       "merge": ">=1.2.1",
       "mysql": ">=2.18.1",
       "puppeteer": "^2.1.1",
-      "reflect-metadata": ">=0.1.10",
+      "reflect-metadata": "^0.1.14",
       "ts-jest": ">=25.5.1",
       "typeorm": ">=0.3.26",
-      "typeorm-fixtures-cli": ">=1.9.1",
+      "typeorm-fixtures-cli": "4.0.0",
       "typescript": ">=3.9.9"
    },
    "scripts": {
