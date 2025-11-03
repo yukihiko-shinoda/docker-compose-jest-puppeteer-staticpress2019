@@ -28,6 +28,6 @@ export default class PageWelcome {
   }
   static async isDisplayedNow() {
     // <h2> is used on modern WordPress, however, <h1> is used at least on WordPress 4.3.
-    return await page.$x('//*[self::h1 or self ::h2][text()="Information needed"]').then((elementHandle) => elementHandle.length !== 0)
+    return await page.$$(`xpath/.//*[self::h1 or self ::h2][text()="Information needed"]`).then((elementHandle) => elementHandle.length !== 0)
   }
 }

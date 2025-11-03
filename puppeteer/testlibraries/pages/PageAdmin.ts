@@ -41,10 +41,10 @@ export default class PageAdmin {
 
   // @see https://gist.github.com/tokland/d3bae3b6d3c1576d8700405829bbdb52
   private static async getLinkHandler(xpath: string): Promise<ElementHandle<Element>> {
-    const linkHandlers = await page.$x(xpath);
-    if (linkHandlers.length <= 0) {
+    const linkHandler = await page.$(`xpath/.${xpath}`);
+    if (linkHandler === null) {
       throw new Error(`Link not found: ${xpath}`);
     }
-    return linkHandlers[0] as ElementHandle<Element>;
+    return linkHandler;
   }
 }
