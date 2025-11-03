@@ -30,7 +30,7 @@ describe('All', () => {
     });
     await page.goto(host).catch(err => {
       console.log(err)
-      throw err
+      throw err || new Error('page.goto() failed with empty error');
     });
     console.log("Finish basic authentication");
     // jest.setTimeout(24 * 60 * 60 * 1000);
@@ -80,13 +80,13 @@ describe('All', () => {
     console.log("Inserting fixtures into the database...");
     await TableCleaner.clean().catch(err => {
       console.log(err)
-      throw err
+      throw err || new Error('TableCleaner.clean() failed with empty error');
     });
     await FixtureLoader.load('./testlibraries/fixtures/WpOptionsStaticPress2019.yml').then(() => {
       console.log('Fixtures are successfully loaded.');
     }).catch(err => {
       console.log(err)
-      throw err
+      throw err || new Error('FixtureLoader.load() failed with empty error');
     });
     console.log("Inserted fixtures into the database.");
   });

@@ -45,6 +45,6 @@ export default class PageAdmin {
     if (linkHandlers.length <= 0) {
       throw new Error(`Link not found: ${xpath}`);
     }
-    return linkHandlers[0];
+    return linkHandlers[0] as ElementHandle<Element>;
   }
 }
