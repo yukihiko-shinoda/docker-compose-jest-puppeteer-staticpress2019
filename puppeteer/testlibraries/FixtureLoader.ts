@@ -15,7 +15,7 @@ export default class FixtureLoader {
 
       const resolver = new Resolver();
       const fixtures = resolver.resolve(loader.fixtureConfigs);
-      const builder = new Builder(connection, new Parser());
+      const builder = new Builder(connection, new Parser(), false);
 
       for (const fixture of fixturesIterator(fixtures)) {
         const entity = await builder.build(fixture);
