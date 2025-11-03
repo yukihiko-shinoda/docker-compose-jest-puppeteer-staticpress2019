@@ -10,7 +10,7 @@
       "@types/puppeteer": ">=2.1.5",
       "dotenv": ">=8.2.0",
       "jest": ">=25.5.4",
-      "jest-puppeteer": "^5.0.4",
+      "jest-puppeteer": "^11.0.0",
       "merge": ">=1.2.1",
       "mysql": ">=2.18.1",
       "puppeteer": "^2.1.1",
