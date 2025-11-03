@@ -1,5 +1,5 @@
-import { createConnection, getRepository } from "typeorm";
-import { ElementHandle } from "puppeteer";
+import { DataSource } from "typeorm";
+import ormconfig from "../ormconfig";
 import PageWelcome from "../testlibraries/pages/PageWelcome";
 import PageLogin from "../testlibraries/pages/PageLogin";
 import RoutineOperation from "../testlibraries/RoutineOperation"
@@ -19,9 +19,11 @@ describe('All', () => {
   const basicAuthenticationUserPassword = "authpassword";
   const userName = "test_user";
   const userPassword = "-JfG+L.3-s!A6YmhsKGkGERc+hq&XswU";
+
+  // To prevent shutdown browser - set timeout before hooks
+  jest.setTimeout(5 * 60 * 1000);
+
   beforeAll(async () => {
-    // To prevent shutdown browser.
-    jest.setTimeout(5 * 60 * 1000);
     console.log("Start basic authentication");
     await page.setExtraHTTPHeaders({
       Authorization: `Basic ${new Buffer(`${basicAuthenticationUserName}:${basicAuthenticationUserPassword}`).toString('base64')}`
@@ -94,8 +96,6 @@ describe('All', () => {
    * Home page should dump by rebuild even if basic authentication is enable.
    */
   test("sets option and rebuilds", async () => {
-    // To prevent shutdown browser.
-    jest.setTimeout(5 * 60 * 1000);
     await page.goto(host + 'wp-admin/', { waitUntil: ["load", "networkidle2"] });
     const pageAdmin = new PageAdmin();
     await pageAdmin.hoverMenu('StaticPress2019');
@@ -115,23 +115,24 @@ describe('All', () => {
     );
     let connection;
     try {
-      connection = await createConnection();
+      const myDataSource = new DataSource(ormconfig)
+      connection = await myDataSource.initialize()
 
-      const wpOptionRepository = getRepository(WpOption);
-      const wpOptionStaticUrl = await wpOptionRepository.findOneOrFail({ optionName: 'StaticPress::static url' });
+      const wpOptionRepository = connection.getRepository(WpOption);
+      const wpOptionStaticUrl = await wpOptionRepository.findOneOrFail({ where: { optionName: 'StaticPress::static url' } });
       expect(wpOptionStaticUrl.optionValue).toEqual(staticUrl);
-      const wpOptionDumpDirectory = await wpOptionRepository.findOneOrFail({ optionName: 'StaticPress::static dir' });
+      const wpOptionDumpDirectory = await wpOptionRepository.findOneOrFail({ where: { optionName: 'StaticPress::static dir' } });
       expect(wpOptionDumpDirectory.optionValue).toEqual(dumpDirectory);
       // const basicAuthentication = ;
-      // const wpOptionBasicAuthentication = await wpOptionRepository.findOneOrFail({optionName: 'StaticPress::basic auth'});
+      // const wpOptionBasicAuthentication = await wpOptionRepository.findOneOrFail({where: { optionName: 'StaticPress::basic auth' }});
       // expect(wpOptionBasicAuthentication.optionValue).toEqual(basicAuthentication);
-      const wpOptionRequestTimeout = await wpOptionRepository.findOneOrFail({ optionName: 'StaticPress::timeout' });
+      const wpOptionRequestTimeout = await wpOptionRepository.findOneOrFail({ where: { optionName: 'StaticPress::timeout' } });
       expect(wpOptionRequestTimeout.optionValue).toEqual(requestTimeout);
     } catch (err) {
       throw err;
     } finally {
       if (connection) {
-        await connection.close();
+        await connection.destroy();
       }
     }
     await pageAdmin.hoverMenu('StaticPress2019');

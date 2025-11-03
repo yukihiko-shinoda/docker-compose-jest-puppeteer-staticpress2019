@@ -1,12 +1,14 @@
 import * as path from 'path';
 import { Builder, fixturesIterator, Loader, Parser, Resolver } from 'typeorm-fixtures-cli/dist';
-import { createConnection, getRepository, ObjectLiteral } from "typeorm";
+import { DataSource, ObjectLiteral } from "typeorm";
+import ormconfig from "../ormconfig";
 
 export default class FixtureLoader {
   public static async load(fixturesPath: string) {
     let connection;
     try {
-      connection = await createConnection();
+      const myDataSource = new DataSource(ormconfig);
+      connection = await myDataSource.initialize();
 
       const loader = new Loader();
       loader.load(path.resolve(fixturesPath));
@@ -20,13 +22,13 @@ export default class FixtureLoader {
         if (!this.implementsObjectLiteral(entity)) {
           throw new Error('Entity doesn\'t implement ObjectLiteral.');
         }
-        await getRepository(entity.constructor.name).save(entity);
+        await connection.getRepository(entity.constructor.name).save(entity);
       }
     } catch (err) {
       throw err;
     } finally {
       if (connection) {
-        await connection.close();
+        await connection.destroy();
       }
     }
   };

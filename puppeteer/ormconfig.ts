@@ -1,12 +1,12 @@
+import { DataSourceOptions } from 'typeorm';
 require('dotenv').config()
-module.exports = {
+const dataSourceOptions: DataSourceOptions = {
   "type": "mysql",
   "host": process.env.DATABASE_HOST || "localhost",
   "port": 3306,
   "username": "exampleuser",
   "password": "examplepass",
   "database": "exampledb",
-  "schema": "",
   "synchronize": false,
   "logging": false,
   "entities": [
@@ -18,9 +18,5 @@ module.exports = {
   "subscribers": [
     "testlibraries/subscriber/**/*.ts"
   ],
-  "cli": {
-    "entitiesDir": "testlibraries/entities",
-    "migrationsDir": "testlibraries/migration",
-    "subscribersDir": "testlibraries/subscriber"
-  }
 }
+export default dataSourceOptions;

@@ -1,13 +1,15 @@
-import { createConnection, getRepository } from "typeorm";
+import { DataSource } from "typeorm";
 import { WpOption } from "./entities/WpOption";
+import ormconfig from "../ormconfig";
 
 export default class TableCleaner {
   public static async clean() {
     let connection;
     try {
-      connection = await createConnection();
+      const myDataSource = new DataSource(ormconfig);
+      connection = await myDataSource.initialize();
 
-      const wpOptionRepository = getRepository(WpOption);
+      const wpOptionRepository = connection.getRepository(WpOption);
       await wpOptionRepository.delete({optionName: 'StaticPress::static url'});
       await wpOptionRepository.delete({optionName: 'StaticPress::static dir'});
       await wpOptionRepository.delete({optionName: 'StaticPress::timeout'});
@@ -15,7 +17,7 @@ export default class TableCleaner {
       throw err;
     } finally {
       if (connection) {
-        await connection.close();
+        await connection.destroy();
       }
     }
   };
