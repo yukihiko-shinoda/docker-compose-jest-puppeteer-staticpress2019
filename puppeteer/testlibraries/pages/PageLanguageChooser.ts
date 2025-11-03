@@ -10,6 +10,6 @@ export default class PageLanguageChooser {
     ]);
   }
   static async isDisplayedNow() {
-    return await page.$x('//label[text()="Select a default language"]').then((elementHandle: ElementHandle<Element>[]) => elementHandle.length !== 0)
+    return await page.$x('//label[text()="Select a default language"]').then((elementHandle) => elementHandle.length !== 0)
   }
 }

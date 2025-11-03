@@ -1,4 +1,5 @@
 import RoutineOperation from "../RoutineOperation";
+import { ElementHandle } from "puppeteer";
 
 export default class PagePlugins {
   public async activatePlugin(pluginName: string) {
@@ -10,7 +11,7 @@ export default class PagePlugins {
     }
     await Promise.all([
       page.waitForNavigation({ waitUntil: "domcontentloaded" }),
-      linkHandlers[0].click()
+      (linkHandlers[0] as ElementHandle<Element>).click()
     ]);
   }
 }
