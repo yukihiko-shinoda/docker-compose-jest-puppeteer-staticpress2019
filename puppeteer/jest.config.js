@@ -3,4 +3,8 @@ const merge = require('merge')
 const puppeteer_preset = require('jest-puppeteer/jest-preset')
 const ts_preset = require('ts-jest/jest-preset')
 
-module.exports = merge.recursive(puppeteer_preset, ts_preset);
+module.exports = merge.recursive(puppeteer_preset, ts_preset, {
+  moduleNameMapper: {
+    '^@faker-js/faker$': '<rootDir>/testlibraries/mocks/faker.js'
+  }
+});
