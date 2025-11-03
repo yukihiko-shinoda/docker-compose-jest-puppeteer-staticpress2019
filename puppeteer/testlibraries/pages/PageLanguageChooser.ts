@@ -1,5 +1,3 @@
-import { ElementHandle } from "puppeteer";
-
 export default class PageLanguageChooser {
   public async choose(language: string) {
     await page.select('select[id="language"]', language);
@@ -10,6 +8,6 @@ export default class PageLanguageChooser {
     ]);
   }
   static async isDisplayedNow() {
-    return await page.$x('//label[text()="Select a default language"]').then((elementHandle) => elementHandle.length !== 0)
+    return await page.$(`xpath/.//label[text()="Select a default language"]`).then((elementHandle) => elementHandle !== null)
   }
 }
