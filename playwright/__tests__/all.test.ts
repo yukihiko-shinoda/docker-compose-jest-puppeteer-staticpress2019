@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+import { test, expect, Page } from '@playwright/test';
 import { DataSource } from "typeorm";
 import ormconfig from "../ormconfig";
 import PageWelcome from "../testlibraries/pages/PageWelcome";
@@ -6,77 +8,76 @@ import RoutineOperation from "../testlibraries/RoutineOperation"
 import PageAdmin from "../testlibraries/pages/PageAdmin";
 import PagePlugins from "../testlibraries/pages/PagePlugins";
 import PageStaticPressOptions from "../testlibraries/pages/PageStaticPressOptions";
-import { WpOption } from "../testlibraries/entities/WpOption";
 import FixtureLoader from "../testlibraries/FixtureLoader";
 import TableCleaner from "../testlibraries/TableCleaner";
 import PageStaticPress from "../testlibraries/pages/PageStaticPress";
 import PageLanguageChooser from "../testlibraries/pages/PageLanguageChooser";
+import * as dotenv from 'dotenv';
 
-describe('All', () => {
-  require('dotenv').config()
+dotenv.config();
+
+test.describe('All', () => {
   const host = process.env.HOST || "http://localhost/";
   const basicAuthenticationUserName = "authuser";
   const basicAuthenticationUserPassword = "authpassword";
   const userName = "test_user";
   const userPassword = "-JfG+L.3-s!A6YmhsKGkGERc+hq&XswU";
 
-  // To prevent shutdown browser - set timeout before hooks
-  jest.setTimeout(5 * 60 * 1000);
+  test.beforeAll(async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
 
-  beforeAll(async () => {
     console.log("Start basic authentication");
-    await page.setExtraHTTPHeaders({
-      Authorization: `Basic ${new Buffer(`${basicAuthenticationUserName}:${basicAuthenticationUserPassword}`).toString('base64')}`
-    });
     await page.goto(host).catch(err => {
       console.log(err)
       throw err || new Error('page.goto() failed with empty error');
     });
     console.log("Finish basic authentication");
-    // jest.setTimeout(24 * 60 * 60 * 1000);
-    // await jestPuppeteer.debug();
     await page.screenshot({ path: 'screenshot1.png' });
 
     // From WordPress 5.4.2, language select page is displayed at first.
-    if (await PageLanguageChooser.isDisplayedNow()) {
+    const pageLanguageChooser = new PageLanguageChooser(page);
+    if (await pageLanguageChooser.isDisplayedNow()) {
       console.log("Start choose language");
-      const pageLanguageChooser = new PageLanguageChooser();
       await pageLanguageChooser.choose("English (United States)");
       console.log("Finish choose language");
     }
-    if (await PageWelcome.isDisplayedNow()) {
+    const pageWelcome = new PageWelcome(page);
+    if (await pageWelcome.isDisplayedNow()) {
       console.log("Start Initialize");
-      await initialize();
+      await initialize(page);
       console.log("Finish Initialize");
+      await context.close();
       return;
     }
     console.log("Start login");
-    await login();
+    await login(page);
     console.log("Finish login");
-});
+    await context.close();
+  });
 
-  async function initialize() {
+  async function initialize(page: Page) {
     console.log("Start Initialize");
-    const pageWelcome = new PageWelcome();
+    const pageWelcome = new PageWelcome(page);
     await pageWelcome.install("test_title", userName, userPassword, "test@gmail.com");
 
     await RoutineOperation.clickByText(page, 'a', 'Log In');
-    await page.waitForNavigation({ waitUntil: ["load", "networkidle2"] });
+    await page.waitForLoadState('networkidle');
 
-    await login();
-    const pageAdmin = new PageAdmin();
+    await login(page);
+    const pageAdmin = new PageAdmin(page);
     await pageAdmin.clickMenu('Plugins');
-    const pagePlugins = new PagePlugins();
+    const pagePlugins = new PagePlugins(page);
     await pagePlugins.activatePlugin('StaticPress2019');
   }
 
-  async function login() {
-    await page.goto(host + 'wp-admin/', { waitUntil: ["load", "networkidle2"] });
-    const pageLogin = new PageLogin();
+  async function login(page: Page) {
+    await page.goto(host + 'wp-admin/', { waitUntil: 'networkidle' });
+    const pageLogin = new PageLogin(page);
     await pageLogin.login(userName, userPassword);
   }
 
-  beforeEach(async () => {
+  test.beforeEach(async () => {
     console.log("Inserting fixtures into the database...");
     await TableCleaner.clean().catch(err => {
       console.log(err)
@@ -95,14 +96,16 @@ describe('All', () => {
    * Option should set into database.
    * Home page should dump by rebuild even if basic authentication is enable.
    */
-  test("sets option and rebuilds", async () => {
-    await page.goto(host + 'wp-admin/', { waitUntil: ["load", "networkidle2"] });
-    const pageAdmin = new PageAdmin();
+  test("sets option and rebuilds", async ({ page }) => {
+    await page.goto(host + 'wp-admin/', { waitUntil: 'networkidle' });
+    const pageLogin = new PageLogin(page);
+    await pageLogin.login(userName, userPassword);
+    const pageAdmin = new PageAdmin(page);
     await pageAdmin.hoverMenu('StaticPress2019');
     await pageAdmin.waitForSubMenu('StaticPress2019 Options');
     await pageAdmin.clickSubMenu('StaticPress2019 Options');
 
-    const pageStaticPressOptions = new PageStaticPressOptions();
+    const pageStaticPressOptions = new PageStaticPressOptions(page);
     const staticUrl = 'http://example.com/sub/';
     const dumpDirectory = '/tmp/static/';
     const requestTimeout = '10';
@@ -118,16 +121,21 @@ describe('All', () => {
       const myDataSource = new DataSource(ormconfig)
       connection = await myDataSource.initialize()
 
-      const wpOptionRepository = connection.getRepository(WpOption);
-      const wpOptionStaticUrl = await wpOptionRepository.findOneOrFail({ where: { optionName: 'StaticPress::static url' } });
-      expect(wpOptionStaticUrl.optionValue).toEqual(staticUrl);
-      const wpOptionDumpDirectory = await wpOptionRepository.findOneOrFail({ where: { optionName: 'StaticPress::static dir' } });
-      expect(wpOptionDumpDirectory.optionValue).toEqual(dumpDirectory);
-      // const basicAuthentication = ;
-      // const wpOptionBasicAuthentication = await wpOptionRepository.findOneOrFail({where: { optionName: 'StaticPress::basic auth' }});
-      // expect(wpOptionBasicAuthentication.optionValue).toEqual(basicAuthentication);
-      const wpOptionRequestTimeout = await wpOptionRepository.findOneOrFail({ where: { optionName: 'StaticPress::timeout' } });
-      expect(wpOptionRequestTimeout.optionValue).toEqual(requestTimeout);
+      // Use raw queries to avoid importing entities with decorators at module load time
+      const wpOptionStaticUrl = await connection.query(
+        "SELECT option_value FROM wp_options WHERE option_name = 'StaticPress::static url'"
+      );
+      expect(wpOptionStaticUrl[0].option_value).toEqual(staticUrl);
+
+      const wpOptionDumpDirectory = await connection.query(
+        "SELECT option_value FROM wp_options WHERE option_name = 'StaticPress::static dir'"
+      );
+      expect(wpOptionDumpDirectory[0].option_value).toEqual(dumpDirectory);
+
+      const wpOptionRequestTimeout = await connection.query(
+        "SELECT option_value FROM wp_options WHERE option_name = 'StaticPress::timeout'"
+      );
+      expect(wpOptionRequestTimeout[0].option_value).toEqual(requestTimeout);
     } catch (err) {
       throw err;
     } finally {
@@ -138,23 +146,8 @@ describe('All', () => {
     await pageAdmin.hoverMenu('StaticPress2019');
     await pageAdmin.waitForSubMenu('StaticPress2019');
     await pageAdmin.clickSubMenu('StaticPress2019');
-    const pageStaticPress = new PageStaticPress();
-    // jest.setTimeout(24 * 60 * 60 * 1000);
-    // await jestPuppeteer.debug();
+    const pageStaticPress = new PageStaticPress(page);
     await pageStaticPress.clickRebuild();
-    await expect(page).toMatchElement('li', { text: /.*\/tmp\/static\/sub\/index\.html/ })
-    // await createConnection().then(async connection => {
-    //   console.log("Loading users from the database...");
-    //   const wpOption = await connection.manager.findOne(WpOption, { optionName: 'StaticPress::static url' });
-    //   console.log("Loaded wpOption: ", wpOption);
-
-    //   console.log("Here you can setup and run express/koa/any other framework.");
-    //   await connection.close();
-    // }).catch(async error => console.log(error));
-    // jest.setTimeout(24 * 60 * 60 * 1000);
-    // await jestPuppeteer.debug();
-
-    // await page.screenshot({ path: 'screenshot.png' });
-    // await expect(page).toMatch('google')
+    await expect(page.locator('li', { hasText: /.*\/tmp\/static\/sub\/index\.html/ })).toBeVisible();
   });
 });

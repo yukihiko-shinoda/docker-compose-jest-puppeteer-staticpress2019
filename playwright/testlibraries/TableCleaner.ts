@@ -1,5 +1,4 @@
 import { DataSource } from "typeorm";
-import { WpOption } from "./entities/WpOption";
 import ormconfig from "../ormconfig";
 
 export default class TableCleaner {
@@ -9,10 +8,10 @@ export default class TableCleaner {
       const myDataSource = new DataSource(ormconfig);
       connection = await myDataSource.initialize();
 
-      const wpOptionRepository = connection.getRepository(WpOption);
-      await wpOptionRepository.delete({optionName: 'StaticPress::static url'});
-      await wpOptionRepository.delete({optionName: 'StaticPress::static dir'});
-      await wpOptionRepository.delete({optionName: 'StaticPress::timeout'});
+      // Use raw query to avoid importing entities with decorators at module load time
+      await connection.query("DELETE FROM wp_options WHERE option_name = 'StaticPress::static url'");
+      await connection.query("DELETE FROM wp_options WHERE option_name = 'StaticPress::static dir'");
+      await connection.query("DELETE FROM wp_options WHERE option_name = 'StaticPress::timeout'");
     } catch (err) {
       throw err;
     } finally {
