@@ -1,5 +1,3 @@
----
-version: '3.7'
 services:
   database:
     environment:
@@ -33,13 +31,15 @@ services:
     volumes:
       - ${PATH_TO_PLUGIN_DIRECTORY}:/var/www/html/wp-content/plugins
 
-  puppeteer:
+  playwright:
     build:
-      context: puppeteer
+      context: playwright
     command: bash -c "sleep 10 && npm test"
     depends_on:
       - wordpress
     environment:
       HOST: http://wordpress/
       DATABASE_HOST: database
-    image: futureys/puppeteer-staticpress2019:latest
+    image: futureys/playwright-staticpress2019:latest
+    ports:
+      - 9323:9323

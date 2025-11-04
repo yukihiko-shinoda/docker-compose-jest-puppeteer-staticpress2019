@@ -1,2 +1,2 @@
-# docker-compose-jest-puppeteer-staticpress2019
-Docker Compose for Jest Puppeteer for StaticPress2019.
+# docker-compose-jest-playwright-staticpress2019
+Docker Compose for Jest Playwright for StaticPress2019.

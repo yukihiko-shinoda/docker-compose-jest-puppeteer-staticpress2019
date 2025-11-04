@@ -9,9 +9,9 @@ const dataSourceOptions: DataSourceOptions = {
   "database": "exampledb",
   "synchronize": false,
   "logging": false,
-  "entities": [
-    "testlibraries/entities/**/*.ts"
-  ],
+  // Empty entities array to avoid loading entities with decorators
+  // We use raw queries instead to work around TypeScript 5.x decorator issues
+  "entities": [],
   "migrations": [
     "testlibraries/migration/**/*.ts"
   ],

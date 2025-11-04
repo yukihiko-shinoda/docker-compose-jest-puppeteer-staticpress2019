@@ -1,4 +1,8 @@
+import { Page } from "@playwright/test";
+
 export default class PageStaticPressOptions {
+  constructor(private page: Page) {}
+
   public async setOptions(
     staticUrl: string,
     dumpDirectory: string,
@@ -11,18 +15,13 @@ export default class PageStaticPressOptions {
     await this.clearAndType('input[id="basic_pwd"]', basicAuthenticationPassword);
     await this.clearAndType('input[id="timeout"]', requestTimeout);
 
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: "domcontentloaded" }),
-      page.click('input[value="Save Changes"]')
-    ]);
+    await this.page.click('input[value="Save Changes"]');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   private async clearAndType(cssSelector: string, input: string) {
-    const elementHandler = await page.$(cssSelector);
-    if (elementHandler === null) {
-      throw new Error(`Input ${cssSelector} not found.`);
-    }
-    await elementHandler.click({ clickCount: 3 })
-    await elementHandler.type(input);
+    const elementHandler = this.page.locator(cssSelector);
+    await elementHandler.click({ clickCount: 3 });
+    await elementHandler.fill(input);
   }
 }

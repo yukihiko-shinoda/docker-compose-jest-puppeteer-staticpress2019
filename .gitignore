@@ -6,3 +6,7 @@ build/
 node_modules/
 tmp/
 temp/
+# Playwright
+playwright-report/
+test-results/
+test-output.log
