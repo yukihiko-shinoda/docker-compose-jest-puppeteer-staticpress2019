@@ -96,7 +96,13 @@ def setup_wordpress(browser: Browser) -> None:
     Args:
         browser: Playwright Browser instance from pytest-playwright
     """
-    context = browser.new_context()
+    context = browser.new_context(
+        http_credentials={
+            "username": BASIC_AUTH_USERNAME,
+            "password": BASIC_AUTH_PASSWORD,
+        },
+        viewport={"width": 1920, "height": 1080},
+    )
     page = context.new_page()
 
     try:
