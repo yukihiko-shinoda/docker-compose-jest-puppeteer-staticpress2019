@@ -1,0 +1,109 @@
+name: Unit Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: exampledb
+          MYSQL_USER: exampleuser
+          MYSQL_PASSWORD: examplepass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.10
+
+      - name: Install dependencies
+        run: |
+          uv sync
+          # Ensure cryptography is installed for MySQL 8.0 authentication
+          uv pip install cryptography>=41.0.0
+        working-directory: ./playwright
+
+      - name: Install Playwright browsers
+        run: |
+          uv run playwright install --with-deps chromium
+        working-directory: ./playwright
+
+      - name: Wait for MySQL to be ready
+        run: |
+          until mysqladmin ping -h 127.0.0.1 -P 3306 --silent; do
+            echo 'waiting for mysql...'
+            sleep 2
+          done
+
+      - name: Prepare unit test environment
+        run: |
+          # Temporarily rename conftest.py to avoid WordPress setup
+          mv conftest.py conftest_integration.py
+          mv conftest_unit.py conftest.py
+        working-directory: ./playwright
+
+      - name: Run unit tests
+        env:
+          HOST: ${{ secrets.WORDPRESS_HOST || 'http://localhost/' }}
+          DATABASE_HOST: 127.0.0.1
+          HEADLESS: true
+        run: |
+          uv run pytest -v \
+            test_database_layer.py \
+            test_page_objects.py \
+            test_phase5_fixtures.py \
+            test_phase6_main_test.py \
+            test_routine_operation.py
+        working-directory: ./playwright
+
+      - name: Restore integration test environment
+        if: always()
+        run: |
+          # Restore original conftest.py
+          mv conftest.py conftest_unit.py
+          mv conftest_integration.py conftest.py
+        working-directory: ./playwright
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: playwright/test-results/
+          retention-days: 7
+
+      - name: Upload screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-screenshots
+          path: |
+            playwright/screenshot*.png
+            playwright/test-results/**/*.png
+          retention-days: 7
