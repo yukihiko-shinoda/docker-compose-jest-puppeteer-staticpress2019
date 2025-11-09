@@ -4,22 +4,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an E2E integration test suite for **StaticPress** (a WordPress plugin) using Playwright. The tests verify WordPress installation, plugin activation, configuration, and the rebuild functionality of StaticPress2019.
+This is an E2E integration test suite for **StaticPress** (a WordPress plugin) using **Playwright** and **Python**. The tests verify WordPress installation, plugin activation, configuration, and the rebuild functionality of StaticPress2019.
+
+**Technology Stack:**
+- Python 3.10+
+- uv (package manager)
+- pytest (testing framework)
+- pytest-playwright (Playwright integration)
+- SQLAlchemy 2.0 (ORM)
+- PyMySQL (MySQL driver)
 
 ## Commands
 
 ### Running Tests
 ```bash
-npm test                      # Run all E2E tests
-npx playwright test          # Alternative way to run tests
-npx playwright test --headed # Run tests in headed mode
-npx playwright test --debug  # Run tests in debug mode
+uv run pytest                      # Run all E2E tests
+uv run pytest --headed             # Run tests in headed mode (see browser)
+uv run pytest -v                   # Run with verbose output
+uv run pytest -k "pattern"         # Run tests matching pattern
+uv run pytest --html=report.html   # Generate HTML report
 ```
 
 ### Development Setup
 ```bash
-npm ci                         # Install dependencies (use this instead of npm install)
-npx playwright install         # Install Playwright browsers
+uv sync                                    # Install dependencies from pyproject.toml
+uv run playwright install chromium         # Install Playwright browsers
+uv run playwright install --with-deps chromium  # Install with system dependencies
 ```
 
 ### Environment Configuration
@@ -31,54 +41,79 @@ The project uses `.env` files for configuration. Key environment variables:
 ## Architecture
 
 ### Test Structure
-- **Main test file**: `__tests__/all.test.ts` - Contains the primary E2E test flow
+- **Main test file**: `tests/test_all.py` - Contains the primary E2E test flow
 - **Page Object Model**: `testlibraries/pages/` - Separate page objects for each WordPress admin page
 - **Test utilities**: `testlibraries/` - Shared helper classes
+- **Test configuration**: `conftest.py` - Pytest fixtures and session setup
 
 ### Key Components
 
-**Database Integration (TypeORM)**
-- `ormconfig.ts` - Database configuration for MySQL connection
-- `testlibraries/entities/` - TypeORM entity definitions for WordPress database tables (wp_options, wp_posts, etc.)
-- `testlibraries/FixtureLoader.ts` - Loads YAML fixtures into the database using typeorm-fixtures-cli
-- `testlibraries/TableCleaner.ts` - Cleans up StaticPress-specific options before each test
-- Connection pattern: Create connection → Execute operations → Close connection in finally block
+**Database Integration (SQLAlchemy 2.0)**
+- `testlibraries/config.py` - Database configuration with SQLAlchemy connection URL
+- `testlibraries/entities/` - SQLAlchemy model definitions for WordPress database tables (wp_options, wp_posts, etc.)
+- `testlibraries/fixture_loader.py` - Loads YAML fixtures into the database using raw SQL queries
+- `testlibraries/table_cleaner.py` - Cleans up StaticPress-specific options before each test
+- Connection pattern: Context manager (`with get_db_connection()`) → Execute operations → Auto-commit/rollback → Auto-close
+- Uses parameterized queries with `text()` for SQL injection protection
 
 **Page Objects (Playwright)**
-- `PageWelcome.ts` - WordPress installation flow
-- `PageLogin.ts` - Login functionality
-- `PageAdmin.ts` - WordPress admin menu navigation (hover, click menu/submenu)
-- `PagePlugins.ts` - Plugin activation
-- `PageStaticPressOptions.ts` - StaticPress configuration form
-- `PageStaticPress.ts` - StaticPress rebuild operations
-- `PageLanguageChooser.ts` - WordPress 5.4.2+ language selection
+- `page_welcome.py` - WordPress installation flow
+- `page_login.py` - Login functionality
+- `page_admin.py` - WordPress admin menu navigation (hover, click menu/submenu)
+- `page_plugins.py` - Plugin activation
+- `page_staticpress_options.py` - StaticPress configuration form
+- `page_staticpress.py` - StaticPress rebuild operations
+- `page_language_chooser.py` - WordPress 5.4.2+ language selection
 
 **Utility Classes**
-- `RoutineOperation.ts` - XPath-based helpers for clicking elements by text
+- `routine_operation.py` - XPath-based helpers for clicking elements by text
 - All page objects receive a `Page` instance via constructor injection
+- All class/function names use `snake_case` following Python conventions
 
 ### Test Flow
-1. **test.beforeAll**: Basic authentication setup → Navigate to WordPress → Handle language selection if needed → Install WordPress or login
-2. **test.beforeEach**: Clean StaticPress options from database → Load fixtures from YAML
-3. **test**: Navigate admin pages → Set StaticPress options → Verify options in database → Trigger rebuild → Verify output
+1. **Session Setup** (`conftest.py` - `setup_wordpress` fixture, runs once):
+   - Basic authentication setup
+   - Navigate to WordPress
+   - Handle language selection if needed (WordPress 5.4.2+)
+   - Install WordPress or login
+   - Activate StaticPress2019 plugin
+
+2. **Before Each Test** (`setup_database_fixtures` fixture, autouse=True):
+   - Clean StaticPress options from database
+   - Load fixtures from YAML files
+
+3. **Main Test** (`tests/test_all.py`):
+   - Navigate admin pages
+   - Set StaticPress options
+   - Verify options saved to database
+   - Trigger rebuild
+   - Verify rebuild output
 
 ### Configuration Files
 
-**Playwright Setup**
-- `playwright.config.ts` - Playwright configuration with browser settings, timeout (5 minutes), viewport, and HTTP credentials
-- Test timeout: 5 minutes (300000ms) configured in playwright.config.ts
+**Python Package Management**
+- `pyproject.toml` - Project metadata, dependencies, and build configuration
+- Uses `uv` for fast dependency resolution and virtual environment management
+- All dependencies pinned with minimum versions
 
-**TypeScript**
-- Target: ES2017, CommonJS modules
-- Output: `./build` directory
-- Strict mode enabled
-- Experimental decorators enabled (for TypeORM)
+**Pytest Setup**
+- `pytest.ini` - Pytest configuration with test discovery patterns and timeout settings
+- `conftest.py` - Pytest fixtures for browser setup and WordPress initialization
+- Test timeout: 5 minutes (300s) configured in pytest.ini
+- Browser context configured with HTTP credentials and viewport settings
+
+**Python**
+- Requires Python 3.10+
+- Type hints used throughout for better IDE support and type checking
+- Compatible with mypy for static type analysis
+- All code follows PEP 8 style guidelines
 
 **Docker**
-- `Dockerfile` - Based on Playwright CI setup with Chromium dependencies
+- `Dockerfile` - Based on Playwright Python image with Chromium dependencies
 - Installs system packages for headless Chromium
-- Installs Playwright browsers with `npx playwright install --with-deps chromium`
-- Runs tests in container with `npm test`
+- Uses uv for dependency installation
+- Installs Playwright browsers with `uv run playwright install --with-deps chromium`
+- Runs tests in container with `uv run pytest`
 
 ## Development Notes
 
@@ -96,31 +131,79 @@ Fixtures are stored in `testlibraries/fixtures/`:
 ### Basic Authentication
 Tests support sites behind HTTP basic auth:
 - Credentials hardcoded: `authuser` / `authpassword`
-- Set via `httpCredentials` in playwright.config.ts
+- Set via `browser_context_args` fixture in `conftest.py`
 
 ### Playwright Best Practices Used
-- `page.waitForLoadState('networkidle')` for stable page loads
-- `Promise.all()` pattern for clicks that trigger navigation
+- `page.wait_for_load_state('networkidle')` for stable page loads
+- Context managers for resource cleanup
 - Screenshots for debugging (`screenshot.png`, `screenshot1.png`)
 - XPath queries with `page.locator('xpath=...')` for reliable element selection by text content
-- Locators instead of ElementHandles for better auto-waiting and retry behavior
+- Locators instead of element handles for better auto-waiting and retry behavior
 - Page object pattern with Page instances passed via constructor
+- Pytest fixtures for setup/teardown instead of beforeAll/beforeEach hooks
 
-## TypeORM Usage Pattern
+## SQLAlchemy Usage Pattern
 
-All database operations follow this pattern:
-```typescript
-let connection;
-try {
-  connection = await createConnection();
-  // ... database operations
-} catch (err) {
-  throw err;
-} finally {
-  if (connection) {
-    await connection.close();
-  }
-}
+All database operations follow this pattern using context managers:
+
+```python
+from sqlalchemy import create_engine, text
+from contextlib import contextmanager
+
+@contextmanager
+def get_db_connection():
+    """Context manager for database connections"""
+    engine = create_engine(DATABASE_URL, **ENGINE_OPTIONS)
+    connection = engine.connect()
+    try:
+        yield connection
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+        engine.dispose()
+
+# Usage example
+with get_db_connection() as conn:
+    result = conn.execute(
+        text("SELECT option_value FROM wp_options WHERE option_name = :name"),
+        {"name": "StaticPress::static url"}
+    )
+    row = result.fetchone()
 ```
 
-Note: The codebase uses deprecated TypeORM v0.2 API (`createConnection`, `getRepository`). Modern TypeORM uses `DataSource`.
+**Key Features:**
+- Context manager ensures proper connection cleanup
+- Automatic commit on success, rollback on exception
+- Parameterized queries prevent SQL injection
+- Engine disposal prevents connection leaks
+
+## Python Conventions
+
+When working with this codebase, follow these Python conventions:
+
+**Naming Conventions:**
+- Functions/methods: `snake_case` (e.g., `click_menu()`, `get_link_handler()`)
+- Classes: `PascalCase` (e.g., `PageAdmin`, `TableCleaner`)
+- Constants: `UPPER_SNAKE_CASE` (e.g., `DATABASE_URL`, `HOST`)
+- Private methods: prefix with `_` (e.g., `_get_link_handler_menu()`)
+
+**Type Hints:**
+```python
+def login(self, username: str, password: str) -> None:
+    """Login to WordPress with provided credentials"""
+    # Implementation
+```
+
+**Docstrings:**
+- Use triple quotes for all docstrings
+- Keep them concise but descriptive
+- Place immediately after function/class definition
+
+**Imports:**
+- Standard library imports first
+- Third-party imports second
+- Local imports last
+- Alphabetically sorted within each group
